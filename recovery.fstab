@@ -1,0 +1,5 @@
+auto      auto     /devices/platform/32e40000.usb/ci_hdrc.0/*     flags=display=auto
+/         ext4     /dev/block/by-name/system                      flags=display=;slotselect
+/data     ext4     /dev/block/by-name/userdata                    flags=display=data
+/misc     emmc     /dev/block/by-name/misc                        flags=display=misc
+none      swap     /dev/block/zram0                               flags=display=none
