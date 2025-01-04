@@ -1,0 +1,63 @@
+import init.recovery.${ro.hardware}.${ro.boot.storage_type}.rc
+on init 
+    # disable cursor blink for fbcon, if no splash screen support
+    write /sys/class/graphics/fbcon/cursor_blink 0
+
+    mkdir /config 0500 root root
+    # mount the configfs on /config
+    mount configfs none /config mode=0755
+    mkdir /config/usb_gadget/g1
+    write /config/usb_gadget/g1/idProduct 0x4ee7
+    write /config/usb_gadget/g1/idVendor 0x18d1
+    mkdir /config/usb_gadget/g1/configs/b.1
+    mkdir /config/usb_gadget/g1/configs/b.1/strings/0x409
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb"
+    mkdir /config/usb_gadget/g1/functions/ffs.adb
+    mkdir /config/usb_gadget/g1/strings/0x409
+    write /config/usb_gadget/g1/strings/0x409/serialnumber ${ro.serialno}
+    write /config/usb_gadget/g1/strings/0x409/manufacturer ${ro.product.manufacturer}
+    write /config/usb_gadget/g1/strings/0x409/product ${ro.product.model}
+
+on boot
+    setprop sys.usb.configfs 1
+
+on property:sys.usb.ffs.ready=1
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f1
+    write /config/usb_gadget/g1/UDC "ci_hdrc.0"
+service tool_switcher /system/bin/tool_switcher
+    oneshot
+    user root
+    group root system
+    seclabel u:r:recovery:s0
+
+on property:vendor.boot_completed=1
+    mkdir /data/vendor 0771 system system
+    mkdir /data/vendor/ss 0700 system system
+    setprop vendor.storageproxyd trusty
+    start storageproxyd
+
+service storageproxyd /vendor/bin/storageproxyd -p /data/vendor/ss -r /dev/block/mmcblk2rpmb -d /dev/trusty-ipc-dev0
+    group system
+
+service pkcs8_to_pkcs1 /system/bin/openssl pkcs8 -in /var/enc_data.bin -inform DER -nocrypt -out /var/org_data.bin -outform DER
+    oneshot
+    user root
+    group system
+    disabled
+    seclabel u:r:recovery:s0
+
+on init
+    chmod 755 /lib/ld-linux-armhf.so.3
+    chmod 755 /lib/libc++.so.1
+    chmod 755 /lib/libc.so.6
+    chmod 755 /lib/libcrypto.so
+    chmod 755 /lib/libcxxrt.so.1
+    chmod 755 /lib/libdl.so.2
+    chmod 755 /lib/libgcc_s.so.1
+    chmod 755 /lib/libglibc_bridge.so
+    chmod 755 /lib/libm.so.6
+    chmod 755 /lib/libpthread.so.0
+    chmod 755 /lib/librt.so.1
+    chmod 755 /lib/libssl.so
+
